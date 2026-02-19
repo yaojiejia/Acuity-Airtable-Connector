@@ -41,8 +41,22 @@ def daily_student_sync(lookback_hours=24):
     )
     
     print(f"\nExported to {len(csv_files)} CSV file(s):")
-    for form_type, filepath in csv_files.items():
-        print(f"  - {form_type}: {filepath}")
+    for form_type, csv_info in csv_files.items():
+        # Handle both old format (str) and new format (dict)
+        if isinstance(csv_info, dict):
+            filepath = csv_info.get('filepath', '')
+            clients = csv_info.get('clients', [])
+            if clients:
+                client_list = ', '.join(clients[:5])  # Show up to 5 clients
+                if len(clients) > 5:
+                    client_list += f" and {len(clients) - 5} more"
+                print(f"  - {form_type}: {filepath}")
+                print(f"    Clients: {client_list}")
+            else:
+                print(f"  - {form_type}: {filepath}")
+        else:
+            # Backward compatibility with old format
+            print(f"  - {form_type}: {csv_info}")
     
     print("\n" + "="*80)
     print("SYNC SUMMARY")

@@ -121,8 +121,25 @@ with tab1:
         # Display CSV files created
         if csv_files:
             st.subheader("CSV Files Created")
-            for form_type, filepath in csv_files.items():
-                st.write(f"📄 **{form_type}**: `{filepath}`")
+            for form_type, csv_info in csv_files.items():
+                # Handle both old format (str) and new format (dict)
+                if isinstance(csv_info, dict):
+                    filepath = csv_info.get('filepath', '')
+                    clients = csv_info.get('clients', [])
+                    if clients:
+                        # Format client names nicely
+                        if len(clients) == 1:
+                            client_text = f" - {clients[0]}"
+                        elif len(clients) <= 3:
+                            client_text = f" - {', '.join(clients)}"
+                        else:
+                            client_text = f" - {', '.join(clients[:3])} and {len(clients) - 3} more"
+                        st.write(f"📄 **{form_type}**: `{filepath}`{client_text}")
+                    else:
+                        st.write(f"📄 **{form_type}**: `{filepath}`")
+                else:
+                    # Backward compatibility with old format
+                    st.write(f"📄 **{form_type}**: `{csv_info}`")
     else:
         st.info("👈 Run a sync from the sidebar to see results here")
 

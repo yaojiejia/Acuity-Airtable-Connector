@@ -273,7 +273,7 @@ class CSVSDK:
         forms: List[Dict],
         output_dir: str = "csv_exports",
         by_appointment_type: bool = True
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Dict]:
         """
         Export forms to CSV files, optionally grouped by appointment type.
         
@@ -283,7 +283,7 @@ class CSVSDK:
             by_appointment_type: Whether to group by appointment type
             
         Returns:
-            Dictionary mapping form types to CSV file paths
+            Dictionary mapping form types to dict with 'filepath' and 'clients' (list of client names)
         """
         # Create output directory
         Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -292,7 +292,8 @@ class CSVSDK:
             # Single CSV file for all forms
             filepath = os.path.join(output_dir, "all_forms.csv")
             self._write_forms_to_csv(forms, filepath)
-            return {"all": filepath}
+            clients = [f.get('client_name', 'Unknown') for f in forms if f.get('client_name')]
+            return {"all": {"filepath": filepath, "clients": clients}}
         
         # Group by appointment type
         grouped_forms = {}
@@ -308,7 +309,9 @@ class CSVSDK:
             filename = self.logger._get_form_csv_filename(apt_type)
             filepath = os.path.join(output_dir, filename)
             self._write_forms_to_csv(type_forms, filepath)
-            result[apt_type] = filepath
+            # Extract client names from forms
+            clients = [f.get('client_name', 'Unknown') for f in type_forms if f.get('client_name')]
+            result[apt_type] = {"filepath": filepath, "clients": clients}
         
         return result
     
@@ -762,7 +765,7 @@ class AcuityAirtableSDK:
         group_by_appointment_type: bool = True,
         output_dir: str = "csv_exports",
         detect_cancellations: bool = True
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Dict]:
         """
         Export Acuity forms to CSV files.
         
@@ -774,7 +777,7 @@ class AcuityAirtableSDK:
             detect_cancellations: Whether to detect cancellations by comparing CSV with current sync
             
         Returns:
-            Dictionary mapping form types to CSV file paths
+            Dictionary mapping form types to dict with 'filepath' and 'clients' (list of client names)
         """
         forms = self.acuity.get_intake_forms(hours, include_canceled)
         
@@ -789,7 +792,8 @@ class AcuityAirtableSDK:
             self._detect_cancellations_from_csv(forms, output_dir, hours)
             
             # Deduplicate again after cancellation detection (may have added duplicates)
-            for filepath in csv_files.values():
+            for csv_info in csv_files.values():
+                filepath = csv_info.get('filepath', '') if isinstance(csv_info, dict) else csv_info
                 if os.path.exists(filepath):
                     self.csv._dedupe_csv_file(filepath)
         
